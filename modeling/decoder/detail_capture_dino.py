@@ -82,96 +82,20 @@ class Matting_Head(nn.Module):
     def __init__(
         self,
         in_chans = 32,
-        mid_chans = 16,
+        mid_chans = 32,
     ):
         super().__init__()
         self.matting_convs = nn.Sequential(
             nn.Conv2d(in_chans, mid_chans, 3, 1, 1),
             nn.BatchNorm2d(mid_chans),
             nn.ReLU(True),
-            nn.Conv2d(mid_chans, 1, 1, 1, 0)
+            nn.Conv2d(mid_chans, 151, 1, 1, 0)
             )
 
     def forward(self, x):
         x = self.matting_convs(x)
 
         return x
-
-class Detail_Capture_DINO_V1(nn.Module):
-    """
-    Simple and Lightweight Detail Capture Module for ViT Matting.
-    """
-    def __init__(
-        self,
-        in_chans = 384,
-        img_chans=4,
-        convstream_out = [48, 96, 192],
-        fusion_out = [256, 128, 64, 32],
-        merge = 'mul',
-        change_image_resolution = True,
-    ):
-        super().__init__()
-        assert len(fusion_out) == len(convstream_out) + 1
-
-        self.convstream = ConvStream(in_chans = img_chans)
-        self.conv_chans = self.convstream.conv_chans
-        self.merge = merge
-        self.other = [0,1,0,0]
-        self.fusion_blks = nn.ModuleList()
-        self.fus_channs = fusion_out.copy()
-        self.change_image_resolution = change_image_resolution
-        if self.merge=='mul':
-            self.fus_channs.insert(0, in_chans)
-        else:
-            self.fus_channs.insert(0, in_chans+1)
-        for i in range(len(self.fus_channs)-1):
-            self.fusion_blks.append(
-                Fusion_Block(
-                    in_chans = self.fus_channs[i] + self.conv_chans[-(i+1)]+self.other[i],
-                    out_chans = self.fus_channs[i+1],
-                )
-            )
-
-        self.matting_head = Matting_Head(
-            in_chans = fusion_out[-1],
-        )
-        self.trimap_head = Matting_Head(
-            in_chans=fusion_out[0],
-        )
-
-    def forward(self, features, sim, images):
-
-        if self.merge=='mul':
-            features = features*sim
-        else:
-            features = torch.cat((features, sim), dim=1)
-
-    # def forward(self, features, images):
-
-
-        H,W = images.shape[-2:]
-
-        if self.change_image_resolution:   
-            f_h,f_w = features.shape[-2:]
-            images = F.interpolate(images, size=(int(16*f_h),int(16*f_w)),mode='bilinear')
-        else:
-            features = F.interpolate(features, size=(int(H/16), int(W/16)))
-        detail_features = self.convstream(images)
-        
-        for i in range(len(self.fusion_blks)):
-            d_name_ = 'D'+str(len(self.fusion_blks)-i-1)
-            features = self.fusion_blks[i](features, detail_features[d_name_])
-            if i==0:
-                trans = self.trimap_head(features)
-                features = torch.cat((features, trans),dim=1)
-        
-        before_sigmoid = self.matting_head(features)
-        phas = torch.sigmoid(before_sigmoid)
-
-        if self.change_image_resolution:   
-            phas = F.interpolate(phas, size=(H,W), mode='bilinear')
-
-        return {'phas': phas, 'befo': before_sigmoid, 'trans':trans}
     
 class Detail_Capture_DINO_V2(nn.Module):
     """
@@ -180,26 +104,19 @@ class Detail_Capture_DINO_V2(nn.Module):
     def __init__(
         self,
         in_chans = 384,
-        img_chans=4,
+        img_chans=3,
         convstream_out = [48, 96, 192],
         fusion_out = [256, 128, 64, 32],
-        merge = 'mul',
-        change_image_resolution = True,
     ):
         super().__init__()
         assert len(fusion_out) == len(convstream_out) + 1
 
         self.convstream = ConvStream(in_chans = img_chans)
         self.conv_chans = self.convstream.conv_chans
-        self.merge = merge
-        self.other = [0,1,0,0]
         self.fusion_blks = nn.ModuleList()
         self.fus_channs = fusion_out.copy()
-        self.change_image_resolution = change_image_resolution
-        if self.merge=='mul':
-            self.fus_channs.insert(0, in_chans)
-        else:
-            self.fus_channs.insert(0, in_chans+1)
+        self.fus_channs.insert(0, in_chans)
+
         for i in range(len(self.fus_channs)-1):
             self.fusion_blks.append(
                 Fusion_Block(
@@ -212,32 +129,19 @@ class Detail_Capture_DINO_V2(nn.Module):
             in_chans = fusion_out[-1],
         )
 
-    def forward(self, features, sim, images):
-
-        if self.merge=='mul':
-            features = features*sim
-        else:
-            features = torch.cat((features, sim), dim=1)
-
-
-
+    def forward(self, features, images):
         H,W = images.shape[-2:]
 
-        if self.change_image_resolution:   
-            f_h,f_w = features.shape[-2:]
-            images = F.interpolate(images, size=(int(16*f_h),int(16*f_w)),mode='bilinear')
-        else:
-            features = F.interpolate(features, size=(int(H/16), int(W/16)))
+        f_h,f_w = features.shape[-2:]
+        images = F.interpolate(images, size=(int(16*f_h),int(16*f_w)),mode='bilinear')
         detail_features = self.convstream(images)
         
         for i in range(len(self.fusion_blks)):
             d_name_ = 'D'+str(len(self.fusion_blks)-i-1)
             features = self.fusion_blks[i](features, detail_features[d_name_])
         
-        before_sigmoid = self.matting_head(features)
-        phas = torch.sigmoid(before_sigmoid)
+        output = self.matting_head(features)
+        
+        output = F.interpolate(output, size=(H,W), mode='bilinear')
 
-        if self.change_image_resolution:   
-            phas = F.interpolate(phas, size=(H,W), mode='bilinear')
-
-        return {'phas': phas, 'befo': before_sigmoid}
+        return output
