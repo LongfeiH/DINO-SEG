@@ -34,13 +34,13 @@ pip install -e .
 
 | version | description                                              | val           |
 |---------|----------------------------------------------------------|---------------|
-| v0      | baseline                                                 | MIoU: 29.51   |
-| v1      | 增加dice_loss                                           | MIoU: 26.16   |
-| v2      | 冻结backbone                                            | MIoU: 32.95   |
+| v0      | baseline                                                  | MIoU: 29.51   |
+| v1      | 增加dice_loss                                             | MIoU: 26.16   |
+| v2      | 冻结backbone                                             | MIoU: 32.95   |
 | v3      | 冻结backbone，增加dice_loss                              | MIoU: 32.22   |
-| v4      | 冻结backbone，增加金字塔池化模块作为neck，聚合backbone生成的四层特征图，集中语义信息 | **MIoU: 35.21** |
-| v5      | 冻结backbone，以直接相加的方式聚合backbone生成的四层特征图，集中语义信息  | MIoU: 33.12   |
-| v6      | 冻结backbone，增加金字塔池化模块作为neck，聚合backbone生成的十二层特征图，集中语义信息 | MIoU: 35.21   |
+| v4      | 冻结backbone，以金字塔池化模块聚合backbone生成的4层特征图 | **MIoU: 35.21** |
+| v5      | 冻结backbone，以直接相加的方式聚合backbone生成的4层特征图  | MIoU: 33.12   |
+| v6      | 冻结backbone，以金字塔池化模块聚合backbone生成的12层特征图 | MIoU: 35.21   |
 
 
 
