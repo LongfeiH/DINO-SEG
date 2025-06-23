@@ -6,7 +6,7 @@ from data import GetData, DataGenerator
 from detectron2 import model_zoo
 from detectron2.solver import WarmupParamScheduler
 from fvcore.common.param_scheduler import MultiStepParamScheduler
-from modeling import DINOMattePromptDiverseV2,Detail_Capture_DINO_V2
+from modeling import DINOMattePromptDiverseV2, Detail_Capture_DINO_V2, MultiLayerPPMFusion
 from easydict import EasyDict
 from evaluation import Evaluator
 
@@ -18,10 +18,10 @@ opts = EasyDict(
     epoches = 100,
     data_num=20000,
     crop_size = (512, 512),
-    output_dir="./output/SEG_3",
-    init_checkpoint='output/SEG_2/model_0058330.pth',
-    losses = ["ce_loss", "dice_loss"],
-    frozen = False,
+    output_dir="./output/SEG_6",
+    init_checkpoint=None,
+    losses = ["ce_loss"],
+    frozen = True,
 )
 opts.max_iter = int(opts.data_num / opts.batch_size / opts.num_gpu * opts.epoches)
 opts.val_step = int(opts.max_iter / 10)
@@ -30,6 +30,7 @@ opts.val_step = int(opts.max_iter / 10)
 model = L(DINOMattePromptDiverseV2)(
     patch_size=14,
     emb_dim=384,
+    neck = MultiLayerPPMFusion(num_layers=12, in_dim=384),
     decoder=L(Detail_Capture_DINO_V2)(),
 )
 

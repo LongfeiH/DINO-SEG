@@ -9,11 +9,13 @@ from detectron2.structures import ImageList
 
 
 class DINOMattePromptDiverseV2(nn.Module):
-    def __init__(self,decoder, patch_size=14, emb_dim=384):
+    def __init__(self, neck, decoder, patch_size=14, emb_dim=384, select_list=[]):
         super(DINOMattePromptDiverseV2, self).__init__()
         self.backbone = torch.hub.load('dinov2', 'dinov2_vits14', source='local')
         self.embedding_size = emb_dim
         self.patch_size = patch_size
+        self.select_list = select_list
+        self.neck = neck
         self.decoder = decoder
     
     @property
@@ -22,16 +24,12 @@ class DINOMattePromptDiverseV2(nn.Module):
 
     def forward(self, data):
         images, H, W = self.preprocess_inputs(data)
+        h, w = int(images.shape[2] / self.patch_size), int(images.shape[3] / self.patch_size)
 
-        batch_size = images.shape[0]
-        mask_dim = (images.shape[2] / self.patch_size, images.shape[3] / self.patch_size) 
-        x_ = self.backbone.forward_features(images)
-        x = x_['x_norm_patchtokens']
-        
-        x = x.permute(0,2,1)
-        x = x.reshape(batch_size,self.embedding_size,int(mask_dim[0]),int(mask_dim[1]))
-
+        features = self.backbone.forward_custom(images, select_list=self.select_list)
+        x = self.neck(features, h, w)
         outputs = self.decoder(x, images)
+        
         return outputs[:,:,:H,:W]
         
 
