@@ -42,7 +42,7 @@ pip install -e .
 | v5      | 冻结backbone，以直接相加的方式聚合backbone生成的4层特征图    | MIoU: 33.12   |
 | v6      | 冻结backbone，以金字塔池化模块聚合backbone生成的12层特征图   | MIoU: 35.21   |
 | v7      | 冻结backbone，以金字塔池化模块聚合4层特征图, SE_SegHead      | **MIoU: 36.78**|
-| v8      | 冻结backbone，以金字塔池化模块聚合4层特征图, CBAM_SegHead      | **MIoU: 36.63** |
+| v8      | 冻结backbone，以金字塔池化模块聚合4层特征图, CBAM_SegHead      | MIoU: 36.63 |
 
 
 
