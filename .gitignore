@@ -1,6 +1,7 @@
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
+**/__pycache__/
 infer_output/
 output/
 .vscode
+configs/config_backups/dino_v9.py

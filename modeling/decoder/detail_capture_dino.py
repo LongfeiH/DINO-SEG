@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
+from .head import SEModule, CBAM
 
 class Basic_Conv3x3(nn.Module):
     """
@@ -114,6 +115,8 @@ class Detail_Capture_DINO_V2(nn.Module):
         self.convstream = ConvStream(in_chans = img_chans)
         self.conv_chans = self.convstream.conv_chans
         self.fusion_blks = nn.ModuleList()
+        # self.se_blks = nn.ModuleList()
+        self.cbam_blks = nn.ModuleList()
         self.fus_channs = fusion_out.copy()
         self.fus_channs.insert(0, in_chans)
 
@@ -123,6 +126,12 @@ class Detail_Capture_DINO_V2(nn.Module):
                     in_chans = self.fus_channs[i] + self.conv_chans[-(i+1)],
                     out_chans = self.fus_channs[i+1],
                 )
+            )
+            # self.se_blks.append(
+            #     SEModule(self.fus_channs[i+1])
+            # )
+            self.cbam_blks.append(
+                CBAM(self.fus_channs[i+1])
             )
 
         self.matting_head = Matting_Head(
@@ -139,6 +148,7 @@ class Detail_Capture_DINO_V2(nn.Module):
         for i in range(len(self.fusion_blks)):
             d_name_ = 'D'+str(len(self.fusion_blks)-i-1)
             features = self.fusion_blks[i](features, detail_features[d_name_])
+            features = self.cbam_blks[i](features)
         
         output = self.matting_head(features)
         

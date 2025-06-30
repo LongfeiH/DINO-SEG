@@ -29,7 +29,7 @@ class DINOMattePromptDiverseV2(nn.Module):
         features = self.backbone.forward_custom(images, select_list=self.select_list)
         x = self.neck(features, h, w)
         outputs = self.decoder(x, images)
-        
+
         return outputs[:,:,:H,:W]
         
 

@@ -111,8 +111,8 @@ def do_train(args, cfg):
         ]
     )
 
-    checkpointer.resume_or_load(cfg.train.init_checkpoint, resume=args.resume)
-    if args.resume and checkpointer.has_checkpoint():
+    checkpointer.resume_or_load(cfg.train.init_checkpoint, resume=cfg.opts.resume)
+    if cfg.opts.resume and checkpointer.has_checkpoint():
         start_iter = trainer.iter + 1
     else:
         start_iter = 0

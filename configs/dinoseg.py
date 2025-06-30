@@ -6,7 +6,7 @@ from data import GetData, DataGenerator
 from detectron2 import model_zoo
 from detectron2.solver import WarmupParamScheduler
 from fvcore.common.param_scheduler import MultiStepParamScheduler
-from modeling import DINOMattePromptDiverseV2, Detail_Capture_DINO_V2, MultiLayerPPMFusion
+from modeling import DINOMattePromptDiverseV2, Detail_Capture_DINO_V2, MultiLayerPPMFusion, SE_SegHead, CBAM_SegHead
 from easydict import EasyDict
 from evaluation import Evaluator
 
@@ -15,13 +15,14 @@ opts = EasyDict(
     num_workers=12,
     lr=1e-4,
     num_gpu = 1,
-    epoches = 100,
+    epoches = 50,
     data_num=20000,
     crop_size = (512, 512),
-    output_dir="./output/SEG_6",
-    init_checkpoint=None,
+    output_dir="./output/SEG_10",
+    init_checkpoint="output/SEG_10/model_0024998.pth",
     losses = ["ce_loss"],
     frozen = True,
+    resume = True,
 )
 opts.max_iter = int(opts.data_num / opts.batch_size / opts.num_gpu * opts.epoches)
 opts.val_step = int(opts.max_iter / 10)
@@ -30,8 +31,11 @@ opts.val_step = int(opts.max_iter / 10)
 model = L(DINOMattePromptDiverseV2)(
     patch_size=14,
     emb_dim=384,
-    neck = MultiLayerPPMFusion(num_layers=12, in_dim=384),
+    select_list=[2, 5, 8, 11],
+    neck = MultiLayerPPMFusion(num_layers=4, in_dim=384),
     decoder=L(Detail_Capture_DINO_V2)(),
+    # decoder=L(SE_SegHead)(in_channels=384, num_classes=151, inter_channels=192)
+    # decoder=L(CBAM_SegHead)(in_channels=384, num_classes=151, inter_channels=192)
 )
 
 # Dataloader
